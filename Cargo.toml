@@ -1,0 +1,8 @@
+[package]
+name = "aurora"
+version = "0.1.0"
+edition = "2021"
+authors = ["walleXD <6826840+walleXD@users.noreply.github.com>"]
+
+[dependencies]
+clap = "3.0.13"
