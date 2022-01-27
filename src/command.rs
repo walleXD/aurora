@@ -1,7 +1,11 @@
 use clap::{Parser, Subcommand};
+use confy::{load, store, ConfyError};
+use core::panic;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Simple program to manage hostfiles
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
 pub struct Cli {
     /// Name of the person to greet
@@ -9,6 +13,7 @@ pub struct Cli {
     command: Command,
 }
 
+/// Main base commands
 #[derive(Subcommand)]
 enum Command {
     /// Install all plugins
@@ -19,10 +24,85 @@ enum Command {
     Add {},
     /// Remove a plugin
     Rm {},
+    /// Access aurora settings
+    Settings {
+        #[clap(subcommand)]
+        command: SettingsCommand,
+    },
+}
+
+/// Settings commands
+#[derive(Subcommand)]
+enum SettingsCommand {
+    /// List all settings
+    Ls {},
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl fmt::Debug for Command {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+struct Config {
+    version: u8,
+    api_key: String,
+}
+
+fn handle_settings_cmds(command: SettingsCommand, config: &Config) {
+    match command {
+        SettingsCommand::Ls {} => {
+            println!("The configuration is:");
+            println!("{:#?}", config);
+        }
+    }
+}
+
+fn handle_base_cmds(command: Command, _config: &Config) {
+    match command {
+        Command::Lock {} => {
+            println!("Install all plugins");
+        }
+        Command::Ls {} => {
+            println!("List all plugins");
+        }
+        Command::Add {} => {
+            println!("Add a plugin");
+        }
+        Command::Rm {} => {
+            println!("Remove a plugin");
+        }
+        _ => {
+            panic!("Unknown command");
+        }
+    }
 }
 
 impl Cli {
-    pub fn exec(self) {
-        println!("The value of my-arg is ");
+    pub fn exec(self) -> Result<(), ConfyError> {
+        // load settings from a config file
+        let cfg: Config = load(env!("CARGO_PKG_NAME"))?;
+
+        // handle commands
+        match self.command {
+            Command::Settings { command } => {
+                handle_settings_cmds(command, &cfg);
+            }
+            _ => {
+                handle_base_cmds(self.command, &cfg);
+            }
+        }
+
+        // store settings from a config file
+        store(env!("CARGO_PKG_NAME"), cfg)?;
+
+        Ok(())
     }
 }
