@@ -5,4 +5,4 @@ edition = "2021"
 authors = ["walleXD <6826840+walleXD@users.noreply.github.com>"]
 
 [dependencies]
-clap = "3.0.13"
+clap = { version = "3.0.13", features = ["derive"] }
