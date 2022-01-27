@@ -6,3 +6,5 @@ authors = ["walleXD <6826840+walleXD@users.noreply.github.com>"]
 
 [dependencies]
 clap = { version = "3.0.13", features = ["derive"] }
+human-panic = "1.0.3"
+serde = { version = "1.0.136", features = ["derive"] }
