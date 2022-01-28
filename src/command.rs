@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use confy::{load, store, ConfyError};
 use core::panic;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 
 /// Simple program to manage hostfiles
@@ -17,7 +18,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Install all plugins
-    Lock {},
+    Load {},
     /// List all plugins
     Ls {},
     /// Add a plugin
@@ -50,13 +51,41 @@ impl fmt::Debug for Command {
     }
 }
 
-#[derive(Default, Debug, Serialize, Deserialize)]
-struct Config {
-    version: u8,
-    api_key: String,
+#[derive(Debug, Serialize, Deserialize)]
+enum PluginKind {
+    Local,
+    Git,
+    Github,
+    Remote,
 }
 
-fn handle_settings_cmds(command: SettingsCommand, config: &Config) {
+#[derive(Debug, Serialize, Deserialize)]
+struct Plugin {
+    kind: PluginKind,
+    path: Option<String>,
+    dir: Option<String>,
+    file: String,
+}
+
+impl Default for Plugin {
+    fn default() -> Self {
+        Plugin {
+            kind: PluginKind::Local,
+            path: None,
+            dir: None,
+            file: "hosts".to_string(),
+        }
+    }
+}
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+struct Config {
+    #[serde(serialize_with = "toml::ser::tables_last")]
+    plugins: HashMap<String, Plugin>,
+}
+
+/// Handle settings commands
+fn handle_settings_cmds(command: SettingsCommand, config: &mut Config) {
     match command {
         SettingsCommand::Ls {} => {
             println!("The configuration is:");
@@ -65,9 +94,10 @@ fn handle_settings_cmds(command: SettingsCommand, config: &Config) {
     }
 }
 
-fn handle_base_cmds(command: Command, _config: &Config) {
+/// Handle the main commands
+fn handle_base_cmds(command: Command, _config: &mut Config) {
     match command {
-        Command::Lock {} => {
+        Command::Load {} => {
             println!("Install all plugins");
         }
         Command::Ls {} => {
@@ -86,22 +116,24 @@ fn handle_base_cmds(command: Command, _config: &Config) {
 }
 
 impl Cli {
+    /// Run the program
     pub fn exec(self) -> Result<(), ConfyError> {
         // load settings from a config file
-        let cfg: Config = load(env!("CARGO_PKG_NAME"))?;
+        let mut cfg: Config = load(env!("CARGO_PKG_NAME"))?;
+        let cfg_ref = &mut cfg;
 
         // handle commands
         match self.command {
             Command::Settings { command } => {
-                handle_settings_cmds(command, &cfg);
+                handle_settings_cmds(command, cfg_ref);
             }
             _ => {
-                handle_base_cmds(self.command, &cfg);
+                handle_base_cmds(self.command, cfg_ref);
             }
         }
 
         // store settings from a config file
-        store(env!("CARGO_PKG_NAME"), cfg)?;
+        store(env!("CARGO_PKG_NAME"), cfg_ref)?;
 
         Ok(())
     }
