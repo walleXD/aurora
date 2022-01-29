@@ -1,4 +1,4 @@
-mod command;
+mod commands;
 
 #[doc(hidden)]
-pub use command::Cli;
+pub use commands::Cli;
