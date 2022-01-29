@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use owo_colors::OwoColorize;
 
 use super::{config::Config, plugin::Plugin};
 use std::fmt;
@@ -16,7 +17,11 @@ pub enum Command {
         command: AddCommand,
     },
     /// Remove a plugin
-    Rm {},
+    Rm {
+        /// Name of the plugin
+        #[clap(short, long)]
+        name: String,
+    },
     /// Access aurora settings
     Settings {
         #[clap(subcommand)]
@@ -75,7 +80,7 @@ pub fn handle_add_commands(command: AddCommand, config: &mut Config) {
     match command {
         AddCommand::Local { name, path } => {
             config.plugins.insert(
-                name,
+                name.clone(),
                 Plugin {
                     local: Some(path),
                     inactive: None,
@@ -86,11 +91,13 @@ pub fn handle_add_commands(command: AddCommand, config: &mut Config) {
                     file: None,
                 },
             );
+
+            println!("{}", format!("🤖 Added local plugin {}", name).green());
         }
 
         AddCommand::Remote { name, url } => {
             config.plugins.insert(
-                name,
+                name.clone(),
                 Plugin {
                     remote: Some(url),
                     inactive: None,
@@ -101,6 +108,8 @@ pub fn handle_add_commands(command: AddCommand, config: &mut Config) {
                     file: None,
                 },
             );
+
+            println!("{}", format!("🤖 Added remote plugin {}", name).green());
         }
 
         AddCommand::Github {} => {
@@ -120,13 +129,23 @@ pub fn handle_base_cmds(command: Command, config: &mut Config) {
             println!("Install all plugins");
         }
         Command::Ls {} => {
-            println!("List all plugins");
+            println!("{}", "List of all plugins:".green());
+            config.plugins.iter().for_each(|(name, _plugin)| {
+                println!(
+                    "{} {}",
+                    name.to_string().green(),
+                    _plugin
+                        .inactive
+                        .map_or("✅".to_string(), |_| "❌".to_string())
+                );
+            });
         }
         Command::Add { command } => {
             handle_add_commands(command, config);
         }
-        Command::Rm {} => {
-            println!("Remove a plugin");
+        Command::Rm { name } => {
+            config.plugins.remove(&name);
+            println!("{}", format!("🤖 Removed plugin {}", name).red());
         }
         _ => {
             panic!("Unknown command");
@@ -140,7 +159,19 @@ impl fmt::Display for Command {
     }
 }
 
+impl fmt::Display for AddCommand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl fmt::Debug for Command {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl fmt::Debug for AddCommand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
